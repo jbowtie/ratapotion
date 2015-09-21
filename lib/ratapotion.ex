@@ -1,0 +1,2 @@
+defmodule Ratapotion do
+end
