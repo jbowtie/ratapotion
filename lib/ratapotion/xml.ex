@@ -14,27 +14,29 @@ defmodule Ratapotion.XML do
   def autodetect_encoding(bytes) do
     case bytes do
       <<0x00, 0x00, 0xFE, 0xFF>> ->
-        "ucs-4be with BOM"
+        {"ucs-4be", 4}
       <<0xFF, 0xFE, 0x00, 0x00>> ->
-        "ucs-4le with BOM"
+        {"ucs-4le", 4}
       <<0xFE, 0xFF, _, _>> ->
-        "utf-16be with BOM"
+        {"utf-16be", 2}
       <<0xFF, 0xFE, _, _>> ->
-        "utf-16le with BOM"
+        {"utf-16le", 2}
       <<0xEF, 0xBB, 0xBF, _>> ->
-        "utf-8 with BOM"
+        {"utf-8", 3}
       <<0x00, 0x00, 0x00, 0x3C>> ->
-        "ucs-4be"
+        {"ucs-4be", 0}
       <<0x3C, 0x00, 0x00, 0x00>> ->
-        "ucs-4le"
+        {"ucs-4le", 0}
       <<0x00, 0x3C, 0x00, 0x3F>> ->
-        "utf-16be"
+        {"utf-16be", 0}
       <<0x3C, 0x00, 0x3F, 0x00>> ->
-        "utf-16le"
+        {"utf-16le", 0}
       <<0x3C, 0x3F, 0x78, 0x6D>> ->
-        "utf-8"
+        {"utf-8", 0}
       <<0x4C, 0x6F, 0xA7, 0x94>> ->
-        "EBCDIC"
+        {"EBCDIC", 0}
+      _ ->
+        {"utf-8 fallback", 0}
     end
   end
 end

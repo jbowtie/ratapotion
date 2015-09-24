@@ -5,7 +5,8 @@ defmodule RatapotionTest do
     # read in first 4 bytes
     f = File.stream!(filename, [], 4)
     bytes = hd Enum.take(f, 1)
-    Ratapotion.XML.autodetect_encoding(bytes)
+    {enc, _} = Ratapotion.XML.autodetect_encoding(bytes)
+    enc
   end
 
   test "autodetect ucs-4 big-endian" do
@@ -17,7 +18,7 @@ defmodule RatapotionTest do
   end
 
   test "autodetect utf8 BOM encoding" do
-    assert detect("testdocs/utf8bom.xml") == "utf-8 with BOM"
+    assert detect("testdocs/utf8bom.xml") == "utf-8"
   end
 
   test "autodetect utf16 encoding" do
@@ -29,10 +30,10 @@ defmodule RatapotionTest do
   end
 
   test "autodetect ucs-4 BOM encoding" do
-    assert detect("testdocs/ucs4bom.xml") == "ucs-4be with BOM"
+    assert detect("testdocs/ucs4bom.xml") == "ucs-4be"
   end
 
   test "autodetect utf16 BOM encoding" do
-    assert detect("testdocs/utf16bom.xml") == "utf-16be with BOM"
+    assert detect("testdocs/utf16bom.xml") == "utf-16be"
   end
 end
