@@ -14,11 +14,11 @@ defmodule RatapotionTest do
   end
 
   test "autodetect utf8 encoding" do
-    assert detect("testdocs/utf8.xml") == "utf-8"
+    assert detect("testdocs/utf8.xml") == :utf8
   end
 
   test "autodetect utf8 BOM encoding" do
-    assert detect("testdocs/utf8bom.xml") == "utf-8"
+    assert detect("testdocs/utf8bom.xml") == :utf8
   end
 
   test "autodetect utf16 encoding" do

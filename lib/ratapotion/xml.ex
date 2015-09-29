@@ -76,7 +76,7 @@ defmodule Ratapotion.XML do
       <<0xFF, 0xFE, _, _>> ->
         {"utf-16le", 2}
       <<0xEF, 0xBB, 0xBF, _>> ->
-        {"utf-8", 3}
+        {:utf8, 3}
       <<0x00, 0x00, 0x00, 0x3C>> ->
         {"ucs-4be", 0}
       <<0x3C, 0x00, 0x00, 0x00>> ->
@@ -86,11 +86,11 @@ defmodule Ratapotion.XML do
       <<0x3C, 0x00, 0x3F, 0x00>> ->
         {"utf-16le", 0}
       <<0x3C, 0x3F, 0x78, 0x6D>> ->
-        {"utf-8", 0}
+        {:utf8, 0}
       <<0x4C, 0x6F, 0xA7, 0x94>> ->
         {"EBCDIC", 0}
       _ ->
-        {"utf-8", 0}
+        {:utf8, 0}
     end
   end
 end
