@@ -27,19 +27,7 @@ defmodule Ratapotion.CLI do
   end
 
   def process(filename) do
-    # read in first 4 bytes
-    # print out in hex
-    # pattern match autodetection (case?)
-    f = File.stream!(filename, [], 24)
-    start = hd Enum.take(f, 1)
-    <<a,b,c,d,_doc::binary>> = start
-    bytes = <<a,b,c,d>>
-    {enc, bom_len} = Ratapotion.XML.autodetect_encoding(bytes)
-    Logger.info "autodetected encoding: #{enc}"
-    Logger.info "document starts at offset #{bom_len}"
-    # if utf-8, just start reading chars
-    # else create iconv converter and start converting
-
+    Ratapotion.XML.parse(filename)
   end
 
 

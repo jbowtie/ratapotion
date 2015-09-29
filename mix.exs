@@ -28,7 +28,9 @@ defmodule Ratapotion.Mixfile do
   #
   # Type `mix help deps` for more examples and options
   defp deps do
-    []
+    [
+      {:codepagex, "~> 0.1.1"}
+    ]
   end
   defp escript_config do
     [main_module: Ratapotion.CLI]
