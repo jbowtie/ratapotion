@@ -10,7 +10,7 @@ defmodule RatapotionTest do
   end
 
   test "autodetect ucs-4 big-endian" do
-    assert detect("testdocs/ucs4.xml") == "ucs-4be"
+    assert detect("testdocs/ucs4.xml") == {:utf32, :big}
   end
 
   test "autodetect utf8 encoding" do
@@ -30,7 +30,7 @@ defmodule RatapotionTest do
   end
 
   test "autodetect ucs-4 BOM encoding" do
-    assert detect("testdocs/ucs4bom.xml") == "ucs-4be"
+    assert detect("testdocs/ucs4bom.xml") == {:utf32, :big}
   end
 
   test "autodetect utf16 BOM encoding" do

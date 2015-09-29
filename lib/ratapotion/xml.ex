@@ -82,9 +82,9 @@ defmodule Ratapotion.XML do
     # UTF-16, UTF-32 handled by :unicode
     case bytes do
       <<0x00, 0x00, 0xFE, 0xFF>> ->
-        {"ucs-4be", 4}
+        {{:utf32, :big}, 4}
       <<0xFF, 0xFE, 0x00, 0x00>> ->
-        {"ucs-4le", 4}
+        {{:utf32, :little}, 4}
       <<0xFE, 0xFF, _, _>> ->
         {{:utf16, :big}, 2}
       <<0xFF, 0xFE, _, _>> ->
@@ -92,9 +92,9 @@ defmodule Ratapotion.XML do
       <<0xEF, 0xBB, 0xBF, _>> ->
         {:utf8, 3}
       <<0x00, 0x00, 0x00, 0x3C>> ->
-        {"ucs-4be", 0}
+        {{:utf32, :big}, 0}
       <<0x3C, 0x00, 0x00, 0x00>> ->
-        {"ucs-4le", 0}
+        {{:utf32, :little}, 0}
       <<0x00, 0x3C, 0x00, 0x3F>> ->
         {{:utf16, :big}, 0}
       <<0x3C, 0x00, 0x3F, 0x00>> ->
