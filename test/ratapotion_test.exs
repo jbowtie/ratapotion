@@ -22,11 +22,11 @@ defmodule RatapotionTest do
   end
 
   test "autodetect utf16 encoding" do
-    assert detect("testdocs/utf16.xml") == "utf-16be"
+    assert detect("testdocs/utf16.xml") == {:utf16, :big}
   end
 
   test "autodetect utf16 LE encoding" do
-    assert detect("testdocs/utf16le.xml") == "utf-16le"
+    assert detect("testdocs/utf16le.xml") == {:utf16, :little}
   end
 
   test "autodetect ucs-4 BOM encoding" do
@@ -34,6 +34,6 @@ defmodule RatapotionTest do
   end
 
   test "autodetect utf16 BOM encoding" do
-    assert detect("testdocs/utf16bom.xml") == "utf-16be"
+    assert detect("testdocs/utf16bom.xml") == {:utf16, :big}
   end
 end

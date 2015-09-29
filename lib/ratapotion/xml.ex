@@ -1,9 +1,24 @@
 defmodule Ratapotion.XML do
   require Logger
 
-  def parse(filename) do
-    f = File.stream!(filename, [], 24)
-    parse_document(f)
+  def parse(filename, chunk_size \\ 240) do
+    info = File.stat!(filename)
+    if info.size <= chunk_size do
+      Logger.debug("reading in single go")
+      f = File.open!(filename, [:read])
+      data = IO.binread(f, :all)
+      File.close(f)
+      parse_document(data)
+    end
+    if info.size > chunk_size do
+      f = File.stream!(filename, [], chunk_size)
+      parse_document(f)
+    end
+  end
+
+  def parse_document(data) when is_binary(data) do
+    {enc, bom_len, remainder} = read_sig(data)
+    read_chunk remainder, enc, bom_len
   end
 
   def parse_document(stream) do
@@ -14,34 +29,33 @@ defmodule Ratapotion.XML do
     |> Enum.reduce &parse_chunk/2
   end
 
-  def parse_chunk({dataA, 1}, {data, 0}) do
+  def read_sig(data) do
     <<a,b,c,d,_doc::binary>> = data
     bytes = <<a,b,c,d>>
     {enc, bom_len} = autodetect_encoding(bytes)
-    Logger.info "autodetected encoding: #{enc}"
+    IO.inspect(enc)
     Logger.info "document starts at offset #{bom_len}"
-    remainder = binary_part(data, bom_len, 24-bom_len) 
+    remainder = binary_part(data, bom_len, byte_size(data)-bom_len)
+    {enc, bom_len, remainder}
+  end
+
+  def parse_chunk({dataA, 1}, {data, 0}) do
+    {enc, bom_len, remainder} = read_sig(data)
 
     # last arg is either encoding or func?
     # autodetected encoding can be used until we
     # reach actual declaration,
     # then need to switch encoding
-    result = :unicode.characters_to_list remainder, :utf8
-    case result do
-      {:incomplete, str, rest} ->
-        new_offset = handle(str, bom_len)
-        parse_chunk({dataA, 1}, {new_offset, rest, :utf8})
-      {:error, enc, _rest} ->
-        Logger.debug("error")
-        Logger.debug enc
-        {:error}
-      output ->
-        new_offset = handle(output, bom_len)
-        parse_chunk({dataA, 1}, {new_offset, [], :utf8})
-    end
+    {new_offset, rest, new_enc} = read_chunk remainder, enc, bom_len
+    parse_chunk({dataA, 1}, {new_offset, rest, new_enc})
   end
+
   def parse_chunk({data, _index}, {offset, rest, enc}) do
-    result = :unicode.characters_to_list rest ++ data, enc
+    read_chunk rest ++ data, enc, offset
+  end
+
+  def read_chunk(data, enc, offset) do
+    result = :unicode.characters_to_list data, enc
     case result do
       {:incomplete, str, rest} ->
         new_offset = handle(str, offset)
@@ -72,9 +86,9 @@ defmodule Ratapotion.XML do
       <<0xFF, 0xFE, 0x00, 0x00>> ->
         {"ucs-4le", 4}
       <<0xFE, 0xFF, _, _>> ->
-        {"utf-16be", 2}
+        {{:utf16, :big}, 2}
       <<0xFF, 0xFE, _, _>> ->
-        {"utf-16le", 2}
+        {{:utf16, :little}, 2}
       <<0xEF, 0xBB, 0xBF, _>> ->
         {:utf8, 3}
       <<0x00, 0x00, 0x00, 0x3C>> ->
@@ -82,9 +96,9 @@ defmodule Ratapotion.XML do
       <<0x3C, 0x00, 0x00, 0x00>> ->
         {"ucs-4le", 0}
       <<0x00, 0x3C, 0x00, 0x3F>> ->
-        {"utf-16be", 0}
+        {{:utf16, :big}, 0}
       <<0x3C, 0x00, 0x3F, 0x00>> ->
-        {"utf-16le", 0}
+        {{:utf16, :little}, 0}
       <<0x3C, 0x3F, 0x78, 0x6D>> ->
         {:utf8, 0}
       <<0x4C, 0x6F, 0xA7, 0x94>> ->
