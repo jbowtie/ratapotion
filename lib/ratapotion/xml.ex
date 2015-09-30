@@ -29,7 +29,7 @@ defmodule Ratapotion.XML do
     |> Enum.reduce &parse_chunk/2
   end
 
-  def read_sig(data) do
+  defp read_sig(data) do
     <<a,b,c,d,_doc::binary>> = data
     bytes = <<a,b,c,d>>
     {enc, bom_len} = autodetect_encoding(bytes)
@@ -54,7 +54,7 @@ defmodule Ratapotion.XML do
     read_chunk rest ++ data, enc, offset
   end
 
-  def read_chunk(data, enc, offset) do
+  defp read_chunk(data, enc, offset) do
     result = :unicode.characters_to_list data, enc
     case result do
       {:incomplete, str, rest} ->
@@ -70,10 +70,14 @@ defmodule Ratapotion.XML do
     end
   end
 
-  def handle(chars, offset) do
+  defp handle(chars, offset) do
     str = to_string chars
     # just debug output for new
     # this is where we do our lexing!
+    # Agent.update
+    # state: offset, accum, token_type
+    # send a VTD record to another process 
+    # when token recognized
     Logger.debug(str)
     offset + byte_size str
   end
