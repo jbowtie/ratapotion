@@ -26,14 +26,14 @@ defmodule Ratapotion.XML do
     # Enum.reduce won't call if only one element in collection!
     stream
     |> Stream.with_index
-    |> Enum.reduce &parse_chunk/2
+    |> Enum.reduce(&parse_chunk/2)
   end
 
   defp read_sig(data) do
     <<a,b,c,d,_doc::binary>> = data
     bytes = <<a,b,c,d>>
     {enc, bom_len} = autodetect_encoding(bytes)
-    IO.inspect(enc)
+    Logger.info "autodetected encoding #{inspect enc}"
     Logger.info "document starts at offset #{bom_len}"
     remainder = binary_part(data, bom_len, byte_size(data)-bom_len)
     {enc, bom_len, remainder}
