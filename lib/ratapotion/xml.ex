@@ -71,15 +71,20 @@ defmodule Ratapotion.XML do
   end
 
   defp handle(chars, offset) do
-    str = to_string chars
     # just debug output for new
     # this is where we do our lexing!
     # Agent.update
     # state: offset, accum, token_type
     # send a VTD record to another process 
     # when token recognized
-    Logger.debug(str)
-    offset + byte_size str
+    # usage
+    # Parser.start
+    # Parser.inc_parse(chars)
+    # VTD.start
+    # VTD.add_record
+    {extra, new_offset} = Ratapotion.Lexer.lex(chars, offset)
+    Logger.debug "unparsed: #{extra}"
+    new_offset
   end
 
   def autodetect_encoding(bytes) do
@@ -110,5 +115,37 @@ defmodule Ratapotion.XML do
       _ ->
         {:utf8, 0}
     end
+  end
+end
+
+defmodule Ratapotion.Lexer do
+  require Logger
+  @whitespace ' \t\r\n'
+  # @nameChar ?A..?Z ++ ?a..?z  #extend to match XML spec
+
+  def lex(input, offset) do
+    lex_start(input, offset+1)
+  end
+
+  #XML declaration
+  #or start of UTF-8 document
+  def lex_start([?<, ??, ?x, ?m, ?l, space | tail], offset)  when space in @whitespace do
+    Logger.info "XML declaration #{offset}"
+    lex_decl tail, offset + 6
+  end
+
+  def lex_decl([??, ?> | tail], offset) do
+    Logger.info "XML declaration ends"
+    {tail, offset+2}
+  end
+
+  #consume whitespace
+  def lex_decl([head | tail], offset) when head in ' \t\r\n' do
+    lex_decl tail, offset+1
+  end
+
+  def lex_decl([head | tail], offset) do
+    Logger.debug "#{head} at offset #{offset}"
+    lex_decl tail, offset+1
   end
 end
