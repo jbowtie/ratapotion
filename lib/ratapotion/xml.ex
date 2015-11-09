@@ -29,7 +29,7 @@ defmodule Ratapotion.XML do
     |> Enum.reduce(&parse_chunk/2)
   end
 
-  defp read_sig(data) do
+  def read_sig(data) do
     <<a,b,c,d,_doc::binary>> = data
     bytes = <<a,b,c,d>>
     {enc, bom_len} = autodetect_encoding(bytes)
@@ -75,7 +75,7 @@ defmodule Ratapotion.XML do
     # this is where we do our lexing!
     # Agent.update
     # state: offset, accum, token_type
-    # send a VTD record to another process 
+    # send a VTD record to another process
     # when token recognized
     # usage
     # Parser.start
@@ -118,34 +118,117 @@ defmodule Ratapotion.XML do
   end
 end
 
-defmodule Ratapotion.Lexer do
+# another tack
+# key is next(), back()
+# next fetches next item
+# back restores the old state
+# peek is next+back, returning seen state
+# accept is keep calling next until fail, then back, return accum
+
+# Stream.unfold - initial value + function
+# func returns value, next input to function
+# return nil to terminate
+
+# Stream.resource - same an unfold, but initial value is a func, plus needs destructor
+
+# initial function
+
+# next offset, file pointer/stream?, encoding, tail of current chunk
+# if tail = {:incomplete, rest} get next chunk and tail == rest++new_chunk
+# if EOF return {:halt}
+
+
+#lexer state (TODO: struct)
+# state: {file, enc, start, pos, width, data, last_char, next_char, token_type_or_lex_func}
+#  file, encoding
+#  start of current token, current file position
+#  byte width of last character
+#  current file chunk being read
+#  last character read
+#  next character (used when backing up, nil otherwise)
+#  either a token type atom or a lexing function
+defmodule Ratapotion.XmlLexer do
   require Logger
-  @whitespace ' \t\r\n'
-  # @nameChar ?A..?Z ++ ?a..?z  #extend to match XML spec
+  use GenServer
 
-  def lex(input, offset) do
-    lex_start(input, offset+1)
+  def init({f, chunk_size}) do
+    data = IO.binread(f, chunk_size)
+    {enc, bom_len, remainder} = Ratapotion.XML.read_sig(data)
+    #result = :unicode.characters_to_list remainder, enc
+    {:ok, {f, enc, bom_len, bom_len, 0, remainder, nil, nil, :DOC_START} }
   end
 
-  #XML declaration
-  #or start of UTF-8 document
-  def lex_start([?<, ??, ?x, ?m, ?l, space | tail], offset)  when space in @whitespace do
-    Logger.info "XML declaration #{offset}"
-    lex_decl tail, offset + 6
+  defp read_char(data, _file, :utf8) do
+    <<head::utf8, tail::binary>> = data
+    {head, tail, byte_size(<<head>>)}
   end
 
-  def lex_decl([??, ?> | tail], offset) do
-    Logger.info "XML declaration ends"
-    {tail, offset+2}
+  defp read_char(data, file, {:utf16, :big}) when byte_size(data) == 1 do
+    Logger.info "read utf16 chunk" 
+    new_chunk = IO.binread(file, 240)
+    read_char(data <> new_chunk, file, {:utf16, :big})
   end
 
-  #consume whitespace
-  def lex_decl([head | tail], offset) when head in ' \t\r\n' do
-    lex_decl tail, offset+1
+  defp read_char(data, _file, {:utf16, :big}) do
+    <<head::utf16-big, tail::binary>> = data
+    {<<head>>, tail, byte_size(<<head>>)}
   end
 
-  def lex_decl([head | tail], offset) do
-    Logger.debug "#{head} at offset #{offset}"
-    lex_decl tail, offset+1
+  # if tail empty or incomplete, read next chunk
+  def handle_call(:next, _from, {file, enc, start, pos, width, <<>>, _last_char, nil, token_type_or_lex_func }) do
+    Logger.debug "read next chunk"
+    # IO.binread returns data OR :eof
+    new_chunk = IO.binread(file, 240)
+    {head, tail, width} = read_char(new_chunk, file, enc)
+    newstate = {file, enc, start, pos+width, width, tail, head, nil, token_type_or_lex_func }
+    {:reply, head, newstate}
   end
+
+  # next utf8 character
+  def handle_call(:next, _from, {file, enc, start, pos, _width, data, _last_char, nil, token_type_or_lex_func }) do
+    # tail or {:incomplete, tail}
+    {head, tail, width} = read_char(data, file, enc)
+    newstate = {file, enc, start, pos+width, width, tail, head, nil, token_type_or_lex_func }
+    {:reply, head, newstate}
+  end
+
+  # next_char is not nil -- so we must have called :back
+  def handle_call(:next, _from, {file, enc, start, pos, width, data, last_char, next_char, token_type_or_lex_func }) do
+    newstate = {file, enc, start, pos+width, width, data, next_char, nil, token_type_or_lex_func }
+    {:reply, last_char, newstate}
+  end
+
+  # back up one character
+  def handle_cast(:back, {file, enc, start, pos, width, data, last_char, _next_char, token_type_or_lex_func}) do
+    newstate = {file, enc, start, pos-width, width, data, last_char, last_char, token_type_or_lex_func }
+    {:noreply, newstate}
+  end
+
+  # skip anything between start and current position
+  def handle_cast(:ignore, {file, enc, _start, pos, width, data, last_char, next_char, token_type_or_lex_func}) do
+    newstate = {file, enc, pos, pos, width, data, last_char, next_char, token_type_or_lex_func }
+    {:noreply, newstate}
+  end
+
+  def start(f, chunk_size \\ 240) do
+    GenServer.start_link(__MODULE__, {f, chunk_size}, name: __MODULE__)
+  end
+  def next do
+    GenServer.call __MODULE__, :next
+  end
+  def back do
+    GenServer.cast __MODULE__, :back
+  end
+
+  def ignore do
+    GenServer.cast __MODULE__, :ignore
+  end
+
+  def peek do
+    c = next()
+    back()
+    c
+  end
+
+
 end
