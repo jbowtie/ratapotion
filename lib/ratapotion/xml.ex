@@ -163,10 +163,9 @@ defmodule Ratapotion.XmlLexer do
     {head, tail, byte_size(<<head>>)}
   end
 
-  defp read_char(data, file, {:utf16, :big}) when byte_size(data) == 1 do
-    Logger.info "read utf16 chunk" 
+  defp read_char(data, file, {:utf16, endian}) when byte_size(data) == 1 do
     new_chunk = IO.binread(file, 240)
-    read_char(data <> new_chunk, file, {:utf16, :big})
+    read_char(data <> new_chunk, file, {:utf16, endian})
   end
 
   defp read_char(data, _file, {:utf16, :big}) do
@@ -174,9 +173,13 @@ defmodule Ratapotion.XmlLexer do
     {<<head>>, tail, byte_size(<<head>>)}
   end
 
+  defp read_char(data, _file, {:utf16, :little}) do
+    <<head::utf16-little, tail::binary>> = data
+    {<<head>>, tail, byte_size(<<head>>)}
+  end
+
   # if tail empty or incomplete, read next chunk
   def handle_call(:next, _from, {file, enc, start, pos, width, <<>>, _last_char, nil, token_type_or_lex_func }) do
-    Logger.debug "read next chunk"
     # IO.binread returns data OR :eof
     new_chunk = IO.binread(file, 240)
     {head, tail, width} = read_char(new_chunk, file, enc)
