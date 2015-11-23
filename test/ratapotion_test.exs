@@ -84,4 +84,24 @@ defmodule RatapotionTest do
     assert Ratapotion.XmlLexer.next == "m"
     assert Ratapotion.XmlLexer.next == "l"
   end
+  
+  test "pack VTD record" do
+    # token 4 bits, depth 8 bits, prefix len 9 bits, qname len 11 bits
+    # reserved 2 bits, offset 30 bits
+    record = Ratapotion.XML.pack_vtd(0, 1, 0, 7, 130)
+    <<val::64>> = record
+    assert byte_size(record) == 8
+    assert val == 4503629692141698
+  end
+
+  test "unpack VTD record" do
+    # token 4 bits, depth 8 bits, prefix len 9 bits, qname len 11 bits
+    # reserved 2 bits, offset 30 bits
+    {token, depth, prefix, qname, offset} = Ratapotion.XML.unpack_vtd(4503629692141698)
+    assert token == 0
+    assert depth == 1
+    assert prefix == 0
+    assert qname == 7
+    assert offset == 130
+  end
 end

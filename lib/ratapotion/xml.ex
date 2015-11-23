@@ -116,6 +116,15 @@ defmodule Ratapotion.XML do
         {:utf8, 0}
     end
   end
+
+  def pack_vtd(token, depth, prefix, qname, offset) do
+    record = <<token::4, depth::8, prefix::9, qname::11, 0::2, offset::30>>
+  end
+  def unpack_vtd(record) do
+    <<token::4, depth::8, prefix::9, qname::11, _::2, offset::30>> = <<record::64>>
+    {token, depth, prefix, qname, offset}
+  end
+
 end
 
 # another tack
