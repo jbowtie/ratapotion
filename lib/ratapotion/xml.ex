@@ -255,7 +255,7 @@ defmodule Ratapotion.XmlLexer do
     c
   end
 
-  def accept(wanted) do
+  def accept?(wanted) do
     c = next()
     unless c == wanted, do: back()
     c == wanted
