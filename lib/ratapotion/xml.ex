@@ -182,7 +182,7 @@ defmodule Ratapotion.XmlLexer do
 
   defp read_char(data, _file, :utf8) do
     <<head::utf8, tail::binary>> = data
-    {head, tail, byte_size(<<head>>)}
+    {<<head>>, tail, byte_size(<<head>>)}
   end
 
   defp read_char(data, file, {:utf16, endian}) when byte_size(data) == 1 do

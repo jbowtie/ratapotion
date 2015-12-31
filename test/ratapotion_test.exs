@@ -40,37 +40,37 @@ defmodule RatapotionTest do
   test "lexer.next in UTF-8 document" do
     f = File.open!("testdocs/utf8bom.xml")
     Ratapotion.XmlLexer.start(f)
-    assert Ratapotion.XmlLexer.next == ?<
-    assert Ratapotion.XmlLexer.next == ??
-    assert Ratapotion.XmlLexer.next == ?x
-    assert Ratapotion.XmlLexer.next == ?m
-    assert Ratapotion.XmlLexer.next == ?l
+    assert Ratapotion.XmlLexer.next == "<"
+    assert Ratapotion.XmlLexer.next == "?"
+    assert Ratapotion.XmlLexer.next == "x"
+    assert Ratapotion.XmlLexer.next == "m"
+    assert Ratapotion.XmlLexer.next == "l"
   end
 
   test "lexer.back works as expected" do
     f = File.open!("testdocs/utf8.xml")
     Ratapotion.XmlLexer.start(f)
-    assert Ratapotion.XmlLexer.next == ?<
+    assert Ratapotion.XmlLexer.next == "<"
     Ratapotion.XmlLexer.back
-    assert Ratapotion.XmlLexer.next == ?<
-    assert Ratapotion.XmlLexer.next == ??
+    assert Ratapotion.XmlLexer.next == "<"
+    assert Ratapotion.XmlLexer.next == "?"
   end
 
   test "lexer.peek doesn't move cursor" do
     f = File.open!("testdocs/utf8.xml")
     Ratapotion.XmlLexer.start(f)
-    assert Ratapotion.XmlLexer.next == ?<
-    assert Ratapotion.XmlLexer.next == ??
-    assert Ratapotion.XmlLexer.peek == ?x
-    assert Ratapotion.XmlLexer.next == ?x
+    assert Ratapotion.XmlLexer.next == "<"
+    assert Ratapotion.XmlLexer.next == "?"
+    assert Ratapotion.XmlLexer.peek == "x"
+    assert Ratapotion.XmlLexer.next == "x"
   end
 
   test "lexer.accept works as expected" do
     f = File.open!("testdocs/utf8.xml")
     Ratapotion.XmlLexer.start(f)
-    assert Ratapotion.XmlLexer.accept(?<)
-    assert Ratapotion.XmlLexer.accept(?A) == false
-    assert Ratapotion.XmlLexer.accept(??)
+    assert Ratapotion.XmlLexer.accept("<")
+    assert Ratapotion.XmlLexer.accept("A") == false
+    assert Ratapotion.XmlLexer.accept("?")
   end
 
   test "lexer.next in UTF-16BE document" do
