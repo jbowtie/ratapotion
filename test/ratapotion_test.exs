@@ -65,6 +65,14 @@ defmodule RatapotionTest do
     assert Ratapotion.XmlLexer.next == ?x
   end
 
+  test "lexer.accept works as expected" do
+    f = File.open!("testdocs/utf8.xml")
+    Ratapotion.XmlLexer.start(f)
+    assert Ratapotion.XmlLexer.accept(?<)
+    assert Ratapotion.XmlLexer.accept(?A) == false
+    assert Ratapotion.XmlLexer.accept(??)
+  end
+
   test "lexer.next in UTF-16BE document" do
     f = File.open!("testdocs/utf16bom.xml")
     Ratapotion.XmlLexer.start(f, 5)

@@ -146,6 +146,19 @@ end
 # if tail = {:incomplete, rest} get next chunk and tail == rest++new_chunk
 # if EOF return {:halt}
 
+# state: {lexer, vtd_records, lex_func}
+defmodule Ratapotion.XmlTokenizer do
+  require Logger
+  use GenServer
+
+
+  # doc_start
+  # either DECL, <, or space
+  # while next is space, ignore
+  def ignorespace(lexer) do
+    # while lexer.next() in [' ', '\t', '\r'] 
+  end
+end
 
 #lexer state (TODO: struct)
 # state: {file, enc, start, pos, width, data, last_char, next_char, token_type_or_lex_func}
@@ -242,5 +255,10 @@ defmodule Ratapotion.XmlLexer do
     c
   end
 
+  def accept(wanted) do
+    c = next()
+    unless c == wanted, do: back()
+    c == wanted
+  end
 
 end
