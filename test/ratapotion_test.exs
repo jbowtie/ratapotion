@@ -110,6 +110,27 @@ defmodule RatapotionTest do
     assert Lexer.next(lexer) == "b"
   end
 
+  test "has_decl utf8" do
+    f = File.open!("testdocs/utf8bom.xml")
+    data = IO.binread(f, 32)
+    {enc, _, remainder} = Ratapotion.XML.read_sig(data)
+    assert Ratapotion.XML.has_decl? enc, remainder
+  end
+
+  test "has_decl UTF16-BE" do
+    f = File.open!("testdocs/utf16.xml")
+    data = IO.binread(f, 32)
+    {enc, _, remainder} = Ratapotion.XML.read_sig(data)
+    assert Ratapotion.XML.has_decl? enc, remainder
+  end
+
+  test "has_decl UTF16-LE" do
+    f = File.open!("testdocs/utf16lebom.xml")
+    data = IO.binread(f, 32)
+    {enc, _, remainder} = Ratapotion.XML.read_sig(data)
+    assert Ratapotion.XML.has_decl? enc, remainder
+  end
+
   test "pack VTD record" do
     # token 4 bits, depth 8 bits, prefix len 9 bits, qname len 11 bits
     # reserved 2 bits, offset 30 bits

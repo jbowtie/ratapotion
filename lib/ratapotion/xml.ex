@@ -39,6 +39,21 @@ defmodule Ratapotion.XML do
     {enc, bom_len, remainder}
   end
 
+  def has_decl?(:utf8, data) do
+    decl = binary_part(data, 0, 5)
+    decl == "<?xml"
+  end
+
+  def has_decl?({:utf16, :big}, data) do
+    decl = binary_part(data, 0, 10)
+    decl == <<?<::utf16-big, ??::utf16-big, ?x::utf16-big, ?m::utf16-big, ?l::utf16-big>>
+  end
+
+  def has_decl?({:utf16, :little}, data) do
+    decl = binary_part(data, 0, 10)
+    decl == <<?<::utf16-little, ??::utf16-little, ?x::utf16-little, ?m::utf16-little, ?l::utf16-little>>
+  end
+
   def parse_chunk({dataA, 1}, {data, 0}) do
     {enc, bom_len, remainder} = read_sig(data)
 
@@ -155,8 +170,17 @@ defmodule Ratapotion.XmlTokenizer do
   def doc_start(scanner) do
     c = Scanner.next(scanner)
     case c do
-      " " -> Scanner.eat_whitespace(scanner)
+      " " -> 
+        Scanner.eat_whitespace(scanner)
+        unless Scanner.accept?("<"), do: {:error, "Malformed XML document"}
+        {:ok, &lt_seen/1}
+      #"<" -> Scanner.lex_func lt_seen/1
+      _ -> {:error, "Malformed XML document"}
     end
+  end
+
+  # element, PI, comment, CDATA, or DTD decl
+  def lt_seen(scanner) do
   end
 
 end
