@@ -118,7 +118,7 @@ defmodule Ratapotion.XML do
   end
 
   def pack_vtd(token, depth, prefix, qname, offset) do
-    record = <<token::4, depth::8, prefix::9, qname::11, 0::2, offset::30>>
+    <<token::4, depth::8, prefix::9, qname::11, 0::2, offset::30>>
   end
   def unpack_vtd(record) do
     <<token::4, depth::8, prefix::9, qname::11, _::2, offset::30>> = <<record::64>>
@@ -127,21 +127,11 @@ defmodule Ratapotion.XML do
 
 end
 
-# another tack
-# key is next(), back()
-# next fetches next item
-# back restores the old state
-# peek is next+back, returning seen state
-# accept is keep calling next until fail, then back, return accum
-
 # Stream.unfold - initial value + function
 # func returns value, next input to function
 # return nil to terminate
-
 # Stream.resource - same an unfold, but initial value is a func, plus needs destructor
-
 # initial function
-
 # next offset, file pointer/stream?, encoding, tail of current chunk
 # if tail = {:incomplete, rest} get next chunk and tail == rest++new_chunk
 # if EOF return {:halt}
@@ -236,28 +226,30 @@ defmodule Ratapotion.XmlLexer do
   end
 
   def start(f, chunk_size \\ 240) do
-    GenServer.start_link(__MODULE__, {f, chunk_size}, name: __MODULE__)
-  end
-  def next do
-    GenServer.call __MODULE__, :next
-  end
-  def back do
-    GenServer.cast __MODULE__, :back
+    GenServer.start_link(__MODULE__, {f, chunk_size})
   end
 
-  def ignore do
-    GenServer.cast __MODULE__, :ignore
+  def next(pid) do
+    GenServer.call pid, :next
   end
 
-  def peek do
-    c = next()
-    back()
+  def back(pid) do
+    GenServer.cast pid, :back
+  end
+
+  def ignore(pid) do
+    GenServer.cast pid, :ignore
+  end
+
+  def peek(pid) do
+    c = next(pid)
+    back(pid)
     c
   end
 
-  def accept?(wanted) do
-    c = next()
-    unless c == wanted, do: back()
+  def accept?(pid, wanted) do
+    c = next(pid)
+    unless c == wanted, do: back(pid)
     c == wanted
   end
 
