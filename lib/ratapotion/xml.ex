@@ -126,7 +126,7 @@ defmodule Ratapotion.XML do
       <<0x3C, 0x3F, 0x78, 0x6D>> ->
         {:utf8, 0}
       <<0x4C, 0x6F, 0xA7, 0x94>> ->
-        {"EBCDIC", 0}
+        {:ebcdic, 0}
       _ ->
         {:utf8, 0}
     end
