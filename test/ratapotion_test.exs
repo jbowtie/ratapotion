@@ -1,5 +1,14 @@
 defmodule RatapotionTest do
   use ExUnit.Case
+  require Logger
+
+  alias Ratapotion.XmlLexer, as: Lexer
+
+  #mute logging during unit tests
+  setup_all do
+    :ok = Logger.remove_backend(:console)
+    on_exit(fn -> Logger.add_backend(:console, flush: true) end)
+  end
 
   def detect(filename) do
     # read in first 4 bytes
@@ -39,60 +48,68 @@ defmodule RatapotionTest do
 
   test "lexer.next in UTF-8 document" do
     f = File.open!("testdocs/utf8bom.xml")
-    {:ok, lexer} = Ratapotion.XmlLexer.start(f)
-    assert Ratapotion.XmlLexer.next(lexer) == "<"
-    assert Ratapotion.XmlLexer.next(lexer) == "?"
-    assert Ratapotion.XmlLexer.next(lexer) == "x"
-    assert Ratapotion.XmlLexer.next(lexer) == "m"
-    assert Ratapotion.XmlLexer.next(lexer) == "l"
+    {:ok, lexer} = Lexer.start(f)
+    assert Lexer.next(lexer) == "<"
+    assert Lexer.next(lexer) == "?"
+    assert Lexer.next(lexer) == "x"
+    assert Lexer.next(lexer) == "m"
+    assert Lexer.next(lexer) == "l"
   end
 
   test "lexer.back works as expected" do
     f = File.open!("testdocs/utf8.xml")
-    {:ok, lexer} = Ratapotion.XmlLexer.start(f)
-    assert Ratapotion.XmlLexer.next(lexer) == "<"
+    {:ok, lexer} = Lexer.start(f)
+    assert Lexer.next(lexer) == "<"
     Ratapotion.XmlLexer.back(lexer)
-    assert Ratapotion.XmlLexer.next(lexer) == "<"
-    assert Ratapotion.XmlLexer.next(lexer) == "?"
+    assert Lexer.next(lexer) == "<"
+    assert Lexer.next(lexer) == "?"
   end
 
   test "lexer.peek doesn't move cursor" do
     f = File.open!("testdocs/utf8.xml")
-    {:ok, lexer} = Ratapotion.XmlLexer.start(f)
-    assert Ratapotion.XmlLexer.next(lexer) == "<"
-    assert Ratapotion.XmlLexer.next(lexer) == "?"
-    assert Ratapotion.XmlLexer.peek(lexer) == "x"
-    assert Ratapotion.XmlLexer.next(lexer) == "x"
+    {:ok, lexer} = Lexer.start(f)
+    assert Lexer.next(lexer) == "<"
+    assert Lexer.next(lexer) == "?"
+    assert Lexer.peek(lexer) == "x"
+    assert Lexer.next(lexer) == "x"
   end
 
   test "lexer.accept? works as expected" do
     f = File.open!("testdocs/utf8.xml")
-    {:ok, lexer} = Ratapotion.XmlLexer.start(f)
-    assert Ratapotion.XmlLexer.accept?(lexer, "<")
-    refute Ratapotion.XmlLexer.accept?(lexer, "A")
-    assert Ratapotion.XmlLexer.accept?(lexer, "?")
+    {:ok, lexer} = Lexer.start(f)
+    assert Lexer.accept?(lexer, "<")
+    refute Lexer.accept?(lexer, "A")
+    assert Lexer.accept?(lexer, "?")
   end
 
   test "lexer.next in UTF-16BE document" do
     f = File.open!("testdocs/utf16bom.xml")
-    {:ok, lexer} = Ratapotion.XmlLexer.start(f, 5)
-    assert Ratapotion.XmlLexer.next(lexer) == "<"
-    assert Ratapotion.XmlLexer.next(lexer) == "?"
-    assert Ratapotion.XmlLexer.next(lexer) == "x"
-    assert Ratapotion.XmlLexer.next(lexer) == "m"
-    assert Ratapotion.XmlLexer.next(lexer) == "l"
+    {:ok, lexer} = Lexer.start(f, 5)
+    assert Lexer.next(lexer) == "<"
+    assert Lexer.next(lexer) == "?"
+    assert Lexer.next(lexer) == "x"
+    assert Lexer.next(lexer) == "m"
+    assert Lexer.next(lexer) == "l"
   end
 
   test "lexer.next in UTF-16LE document" do
     f = File.open!("testdocs/utf16le.xml")
-    {:ok, lexer} = Ratapotion.XmlLexer.start(f, 5)
-    assert Ratapotion.XmlLexer.next(lexer) == "<"
-    assert Ratapotion.XmlLexer.next(lexer) == "?"
-    assert Ratapotion.XmlLexer.next(lexer) == "x"
-    assert Ratapotion.XmlLexer.next(lexer) == "m"
-    assert Ratapotion.XmlLexer.next(lexer) == "l"
+    {:ok, lexer} = Lexer.start(f, 5)
+    assert Lexer.next(lexer) == "<"
+    assert Lexer.next(lexer) == "?"
+    assert Lexer.next(lexer) == "x"
+    assert Lexer.next(lexer) == "m"
+    assert Lexer.next(lexer) == "l"
   end
-  
+
+  test "eat whitespace" do
+    {:ok, f} = StringIO.open("   abcd")
+    {:ok, lexer} = Lexer.start(f)
+    Ratapotion.XmlTokenizer.eat_whitespace(lexer)
+    assert Lexer.next(lexer) == "a"
+    assert Lexer.next(lexer) == "b"
+  end
+
   test "pack VTD record" do
     # token 4 bits, depth 8 bits, prefix len 9 bits, qname len 11 bits
     # reserved 2 bits, offset 30 bits

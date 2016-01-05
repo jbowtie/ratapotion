@@ -140,17 +140,34 @@ end
 defmodule Ratapotion.XmlTokenizer do
   require Logger
   use GenServer
+  alias Ratapotion.XmlLexer, as: Scanner
 
+  # state: lexer, VTD records
+  def init({scanner, vtd}) do
+    {:ok, {scanner, vtd} }
+  end
+  def start(scanner, vtd \\ []) do
+    GenServer.start_link(__MODULE__, {scanner, vtd})
+  end
 
   # doc_start
   # either DECL, <, or space
+  def doc_start(scanner) do
+    c = Scanner.next(scanner)
+    case c do
+      " " -> eat_whitespace(scanner)
+    end
+  end
+
   # while next is space, ignore
-  def ignorespace(lexer) do
-    # while lexer.next() in [' ', '\t', '\r'] 
+  def eat_whitespace(scanner) do
+    if Scanner.accept?(scanner, ~r/\s/) do
+      Scanner.ignore(scanner)
+      eat_whitespace(scanner)
+    end
   end
 end
 
-#lexer state (TODO: struct)
 # state: {file, enc, start, pos, width, data, last_char, next_char, token_type_or_lex_func}
 #  file, encoding
 #  start of current token, current file position
@@ -166,7 +183,6 @@ defmodule Ratapotion.XmlLexer do
   def init({f, chunk_size}) do
     data = IO.binread(f, chunk_size)
     {enc, bom_len, remainder} = Ratapotion.XML.read_sig(data)
-    #result = :unicode.characters_to_list remainder, enc
     {:ok, {f, enc, bom_len, bom_len, 0, remainder, nil, nil, :DOC_START} }
   end
 
@@ -249,8 +265,13 @@ defmodule Ratapotion.XmlLexer do
 
   def accept?(pid, wanted) do
     c = next(pid)
-    unless c == wanted, do: back(pid)
-    c == wanted
+    if Regex.regex?(wanted) do
+      unless Regex.match?(wanted, c), do: back(pid)
+      Regex.match?(wanted, c)
+    else
+      unless c == wanted, do: back(pid)
+      c == wanted
+    end
   end
 
 end
