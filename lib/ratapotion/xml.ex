@@ -155,17 +155,10 @@ defmodule Ratapotion.XmlTokenizer do
   def doc_start(scanner) do
     c = Scanner.next(scanner)
     case c do
-      " " -> eat_whitespace(scanner)
+      " " -> Scanner.eat_whitespace(scanner)
     end
   end
 
-  # while next is space, ignore
-  def eat_whitespace(scanner) do
-    if Scanner.accept?(scanner, ~r/\s/) do
-      Scanner.ignore(scanner)
-      eat_whitespace(scanner)
-    end
-  end
 end
 
 # state: {file, enc, start, pos, width, data, last_char, next_char, token_type_or_lex_func}
@@ -271,6 +264,14 @@ defmodule Ratapotion.XmlLexer do
     else
       unless c == wanted, do: back(pid)
       c == wanted
+    end
+  end
+
+  # while next is space, ignore
+  def eat_whitespace(pid) do
+    if accept?(pid, ~r/\s/) do
+      ignore(pid)
+      eat_whitespace(pid)
     end
   end
 

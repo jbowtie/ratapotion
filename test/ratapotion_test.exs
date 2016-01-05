@@ -105,7 +105,7 @@ defmodule RatapotionTest do
   test "eat whitespace" do
     {:ok, f} = StringIO.open("   abcd")
     {:ok, lexer} = Lexer.start(f)
-    Ratapotion.XmlTokenizer.eat_whitespace(lexer)
+    Lexer.eat_whitespace(lexer)
     assert Lexer.next(lexer) == "a"
     assert Lexer.next(lexer) == "b"
   end
