@@ -1,32 +1,7 @@
 defmodule Ratapotion.XML do
   require Logger
 
-  def parse(filename, chunk_size \\ 240) do
-    info = File.stat!(filename)
-    if info.size <= chunk_size do
-      Logger.debug("reading in single go")
-      f = File.open!(filename, [:read])
-      data = IO.binread(f, :all)
-      File.close(f)
-      parse_document(data)
-    end
-    if info.size > chunk_size do
-      f = File.stream!(filename, [], chunk_size)
-      parse_document(f)
-    end
-  end
-
-  def parse_document(data) when is_binary(data) do
-    {enc, bom_len, remainder} = read_sig(data)
-    read_chunk remainder, enc, bom_len
-  end
-
-  def parse_document(stream) do
-    #TODO: handle case where file size < chunk size
-    # Enum.reduce won't call if only one element in collection!
-    stream
-    |> Stream.with_index
-    |> Enum.reduce(&parse_chunk/2)
+  def parse(_filename, _chunk_size \\ 240) do
   end
 
   def read_sig(data) do
@@ -52,54 +27,6 @@ defmodule Ratapotion.XML do
   def has_decl?({:utf16, :little}, data) do
     decl = binary_part(data, 0, 10)
     decl == <<?<::utf16-little, ??::utf16-little, ?x::utf16-little, ?m::utf16-little, ?l::utf16-little>>
-  end
-
-  def parse_chunk({dataA, 1}, {data, 0}) do
-    {enc, bom_len, remainder} = read_sig(data)
-
-    # last arg is either encoding or func?
-    # autodetected encoding can be used until we
-    # reach actual declaration,
-    # then need to switch encoding
-    {new_offset, rest, new_enc} = read_chunk remainder, enc, bom_len
-    parse_chunk({dataA, 1}, {new_offset, rest, new_enc})
-  end
-
-  def parse_chunk({data, _index}, {offset, rest, enc}) do
-    read_chunk rest ++ data, enc, offset
-  end
-
-  defp read_chunk(data, enc, offset) do
-    result = :unicode.characters_to_list data, enc
-    case result do
-      {:incomplete, str, rest} ->
-        new_offset = handle(str, offset)
-        {new_offset, rest, enc}
-      {:error, str, _rest} ->
-        Logger.debug("decode error")
-        Logger.debug str
-        {:error}
-      output ->
-        new_offset = handle(output, offset)
-        {new_offset, [], enc}
-    end
-  end
-
-  defp handle(chars, offset) do
-    # just debug output for new
-    # this is where we do our lexing!
-    # Agent.update
-    # state: offset, accum, token_type
-    # send a VTD record to another process
-    # when token recognized
-    # usage
-    # Parser.start
-    # Parser.inc_parse(chars)
-    # VTD.start
-    # VTD.add_record
-    {extra, new_offset} = Ratapotion.Lexer.lex(chars, offset)
-    Logger.debug "unparsed: #{extra}"
-    new_offset
   end
 
   def autodetect_encoding(bytes) do
@@ -170,7 +97,7 @@ defmodule Ratapotion.XmlTokenizer do
   def doc_start(scanner) do
     c = Scanner.next(scanner)
     case c do
-      " " -> 
+      " " ->
         Scanner.eat_whitespace(scanner)
         unless Scanner.accept?("<"), do: {:error, "Malformed XML document"}
         {:ok, &lt_seen/1}
@@ -180,7 +107,7 @@ defmodule Ratapotion.XmlTokenizer do
   end
 
   # element, PI, comment, CDATA, or DTD decl
-  def lt_seen(scanner) do
+  def lt_seen(_scanner) do
   end
 
 end
@@ -224,7 +151,7 @@ defmodule Ratapotion.XmlLexer do
   end
 
   # if tail empty or incomplete, read next chunk
-  def handle_call(:next, _from, {file, enc, start, pos, width, <<>>, _last_char, nil, token_type_or_lex_func }) do
+  def handle_call(:next, _from, {file, enc, start, pos, _width, <<>>, _last_char, nil, token_type_or_lex_func }) do
     # IO.binread returns data OR :eof
     new_chunk = IO.binread(file, 240)
     {head, tail, width} = read_char(new_chunk, file, enc)
@@ -289,6 +216,11 @@ defmodule Ratapotion.XmlLexer do
       unless c == wanted, do: back(pid)
       c == wanted
     end
+  end
+
+  # keep going until we hit an unacceptable character
+  def accept_run(pid, wanted) do
+    if accept?(pid, wanted), do: accept_run(pid, wanted)
   end
 
   # while next is space, ignore

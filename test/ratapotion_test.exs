@@ -131,6 +131,14 @@ defmodule RatapotionTest do
     assert Ratapotion.XML.has_decl? enc, remainder
   end
 
+  test "accept_run for tokens" do
+    {:ok, f} = StringIO.open("123abc")
+    {:ok, lexer} = Lexer.start(f)
+    # should consume 123 in test string
+    Lexer.accept_run(lexer, ~r/[0-9]/)
+    assert Lexer.next(lexer) == "a"
+  end
+
   test "pack VTD record" do
     # token 4 bits, depth 8 bits, prefix len 9 bits, qname len 11 bits
     # reserved 2 bits, offset 30 bits
